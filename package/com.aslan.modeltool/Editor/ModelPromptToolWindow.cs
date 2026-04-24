@@ -378,6 +378,8 @@ namespace Aslan.ModelTool.Editor
 import bpy
 import hashlib
 import os
+import random
+import re
 import sys
 
 
@@ -501,6 +503,215 @@ def create_monkey(detail):
         sub.render_levels = 1 + detail
 
 
+def tokenize_prompt(prompt):
+    return set(re.findall(r'[a-z0-9]+', prompt.lower()))
+
+
+def has_any(tokens, keywords):
+    for keyword in keywords:
+        if keyword in tokens:
+            return True
+    return False
+
+
+def prompt_scale(prompt):
+    scale = 1.0
+    if any(k in prompt for k in ['tiny', 'small', 'mini', 'little']):
+        scale *= 0.75
+    if any(k in prompt for k in ['big', 'large', 'huge', 'giant']):
+        scale *= 1.35
+    return scale
+
+
+def deterministic_rng(prompt):
+    seed = int(hashlib.sha1(prompt.encode('utf-8')).hexdigest()[:8], 16)
+    return random.Random(seed)
+
+
+def create_character(detail):
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.2 + detail * 0.02, depth=1.0 + detail * 0.15, location=(0, 0, 0.75))
+    body = bpy.context.active_object
+    body.name = 'CharacterBody'
+
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.26 + detail * 0.03, location=(0, 0, 1.45 + detail * 0.08))
+    head = bpy.context.active_object
+    head.name = 'CharacterHead'
+
+    for side in (-1, 1):
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=0.08 + detail * 0.01,
+            depth=0.7 + detail * 0.08,
+            location=(0.34 * side, 0, 0.92))
+        arm = bpy.context.active_object
+        arm.rotation_euler[1] = 0.28 * side
+
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=0.09 + detail * 0.01,
+            depth=0.85 + detail * 0.1,
+            location=(0.16 * side, 0, 0.35))
+        leg = bpy.context.active_object
+        leg.name = 'CharacterLeg'
+
+
+def create_vehicle(detail):
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0, 0, 0.45))
+    body = bpy.context.active_object
+    body.scale = (1.1 + detail * 0.2, 0.62 + detail * 0.08, 0.38 + detail * 0.05)
+    body.name = 'VehicleBody'
+
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0.05, 0, 0.9))
+    cabin = bpy.context.active_object
+    cabin.scale = (0.55 + detail * 0.1, 0.5 + detail * 0.06, 0.24 + detail * 0.04)
+    cabin.name = 'VehicleCabin'
+
+    wheel_radius = 0.22 + detail * 0.03
+    for x in (-0.72, 0.72):
+        for y in (-0.56, 0.56):
+            bpy.ops.mesh.primitive_torus_add(major_radius=wheel_radius, minor_radius=0.08, location=(x, y, 0.25))
+            wheel = bpy.context.active_object
+            wheel.rotation_euler[1] = 1.5708
+            wheel.name = 'Wheel'
+
+
+def create_tree(detail):
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.18 + detail * 0.02, depth=1.4 + detail * 0.2, location=(0, 0, 0.7))
+    trunk = bpy.context.active_object
+    trunk.name = 'TreeTrunk'
+
+    layers = 2 + detail
+    for i in range(layers):
+        z = 1.25 + i * 0.38
+        radius = max(0.28, 0.9 - i * 0.18) + detail * 0.05
+        bpy.ops.mesh.primitive_cone_add(radius1=radius, radius2=0.02, depth=0.75 + detail * 0.08, location=(0, 0, z))
+        leaf = bpy.context.active_object
+        leaf.name = 'TreeLeaf'
+
+
+def create_building(detail):
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0, 0, 0.9))
+    base = bpy.context.active_object
+    base.scale = (0.9 + detail * 0.12, 0.9 + detail * 0.12, 0.9 + detail * 0.2)
+    base.name = 'BuildingBody'
+
+    bpy.ops.mesh.primitive_cone_add(radius1=0.95 + detail * 0.12, radius2=0.04, depth=0.7 + detail * 0.1, location=(0, 0, 1.95 + detail * 0.2))
+    roof = bpy.context.active_object
+    roof.name = 'BuildingRoof'
+
+
+def create_weapon(detail):
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.08 + detail * 0.01, depth=1.1 + detail * 0.1, location=(0, 0, 0.55))
+    handle = bpy.context.active_object
+    handle.name = 'WeaponHandle'
+
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0, 0, 1.45 + detail * 0.12))
+    blade = bpy.context.active_object
+    blade.scale = (0.1 + detail * 0.02, 0.22 + detail * 0.02, 0.82 + detail * 0.15)
+    blade.name = 'WeaponBlade'
+
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0, 0, 1.05))
+    guard = bpy.context.active_object
+    guard.scale = (0.48 + detail * 0.05, 0.12, 0.06)
+    guard.name = 'WeaponGuard'
+
+
+def create_animal(detail):
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.42 + detail * 0.04, location=(0, 0, 0.72))
+    body = bpy.context.active_object
+    body.scale = (1.28, 0.82, 0.75)
+    body.name = 'AnimalBody'
+
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.24 + detail * 0.03, location=(0.62, 0, 0.9))
+    head = bpy.context.active_object
+    head.name = 'AnimalHead'
+
+    for side in (-1, 1):
+        bpy.ops.mesh.primitive_cone_add(radius1=0.09, radius2=0.02, depth=0.24, location=(0.72, 0.12 * side, 1.12))
+        ear = bpy.context.active_object
+        ear.name = 'AnimalEar'
+
+    for x in (-0.3, 0.3):
+        for y in (-0.24, 0.24):
+            bpy.ops.mesh.primitive_cylinder_add(radius=0.07 + detail * 0.008, depth=0.52 + detail * 0.08, location=(x, y, 0.28))
+            leg = bpy.context.active_object
+            leg.name = 'AnimalLeg'
+
+
+def create_abstract_from_prompt(detail, prompt):
+    rng = deterministic_rng(prompt)
+    primitive_kinds = ['cube', 'sphere', 'cylinder', 'cone', 'torus']
+    part_count = 2 + detail + rng.randint(0, 2)
+
+    for idx in range(part_count):
+        kind = primitive_kinds[rng.randint(0, len(primitive_kinds) - 1)]
+        x = rng.uniform(-0.8, 0.8)
+        y = rng.uniform(-0.8, 0.8)
+        z = 0.3 + idx * 0.16
+
+        if kind == 'cube':
+            bpy.ops.mesh.primitive_cube_add(size=0.65 + rng.uniform(0.0, 0.45), location=(x, y, z))
+        elif kind == 'sphere':
+            bpy.ops.mesh.primitive_uv_sphere_add(radius=0.28 + rng.uniform(0.0, 0.22), location=(x, y, z))
+        elif kind == 'cylinder':
+            bpy.ops.mesh.primitive_cylinder_add(radius=0.2 + rng.uniform(0.0, 0.12), depth=0.4 + rng.uniform(0.0, 0.5), location=(x, y, z))
+        elif kind == 'cone':
+            bpy.ops.mesh.primitive_cone_add(radius1=0.28 + rng.uniform(0.0, 0.14), radius2=0.02, depth=0.45 + rng.uniform(0.0, 0.45), location=(x, y, z))
+        else:
+            bpy.ops.mesh.primitive_torus_add(major_radius=0.2 + rng.uniform(0.0, 0.14), minor_radius=0.07 + rng.uniform(0.0, 0.04), location=(x, y, z))
+
+        obj = bpy.context.active_object
+        obj.rotation_euler = (rng.uniform(-0.7, 0.7), rng.uniform(-0.7, 0.7), rng.uniform(-0.7, 0.7))
+        obj.name = 'PromptPart'
+
+
+def create_from_prompt(prompt, detail):
+    tokens = tokenize_prompt(prompt)
+
+    if has_any(tokens, {'monkey', 'suzanne', 'ape', 'gorilla', 'chimp'}):
+        create_monkey(detail)
+    elif has_any(tokens, {'coin', 'token', 'medal', 'money'}):
+        create_coin(detail)
+    elif has_any(tokens, {'pillar', 'column'}):
+        create_pillar(detail)
+    elif has_any(tokens, {'platform', 'floor', 'tile', 'ground'}):
+        create_platform(detail)
+    elif has_any(tokens, {'wall', 'barrier', 'fence'}):
+        create_wall_block(detail)
+    elif has_any(tokens, {'lego', 'block', 'brick', 'puzzle'}):
+        create_puzzle_block(detail)
+    elif has_any(tokens, {'character', 'hero', 'enemy', 'npc', 'human', 'person', 'robot', 'soldier', 'wizard', 'knight'}):
+        create_character(detail)
+    elif has_any(tokens, {'vehicle', 'car', 'truck', 'bus', 'bike', 'motorcycle', 'tank', 'plane', 'airplane', 'ship', 'boat'}):
+        create_vehicle(detail)
+    elif has_any(tokens, {'tree', 'plant', 'bush', 'forest', 'flower', 'cactus'}):
+        create_tree(detail)
+    elif has_any(tokens, {'house', 'building', 'tower', 'castle', 'hut', 'home', 'temple'}):
+        create_building(detail)
+    elif has_any(tokens, {'weapon', 'sword', 'axe', 'hammer', 'gun', 'rifle', 'bow', 'spear'}):
+        create_weapon(detail)
+    elif has_any(tokens, {'animal', 'cat', 'dog', 'bird', 'wolf', 'bear', 'fox', 'lion', 'tiger', 'rabbit', 'horse'}):
+        create_animal(detail)
+    elif has_any(tokens, {'cube', 'box'}):
+        bpy.ops.mesh.primitive_cube_add(size=1.0 + detail * 0.18, location=(0, 0, 0.6))
+    elif has_any(tokens, {'sphere', 'ball', 'orb'}):
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.62 + detail * 0.08, location=(0, 0, 0.62))
+    elif has_any(tokens, {'cylinder', 'barrel'}):
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.45 + detail * 0.05, depth=1.1 + detail * 0.15, location=(0, 0, 0.62))
+    elif has_any(tokens, {'cone'}):
+        bpy.ops.mesh.primitive_cone_add(radius1=0.6 + detail * 0.08, radius2=0.03, depth=1.2 + detail * 0.18, location=(0, 0, 0.7))
+    elif has_any(tokens, {'torus', 'ring'}):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.62 + detail * 0.08, minor_radius=0.22 + detail * 0.03, location=(0, 0, 0.62))
+    else:
+        create_abstract_from_prompt(detail, prompt)
+
+    scale = prompt_scale(prompt)
+    if abs(scale - 1.0) > 0.001:
+        for obj in bpy.context.scene.objects:
+            if obj.type == 'MESH':
+                obj.scale[0] *= scale
+                obj.scale[1] *= scale
+                obj.scale[2] *= scale
+
+
 def apply_bevel(detail):
     width = 0.03 + detail * 0.01
     segments = 2 + detail
@@ -534,18 +745,7 @@ def main():
 
     clear_scene()
 
-    if 'monkey' in prompt or 'suzanne' in prompt or 'ape' in prompt:
-        create_monkey(detail)
-    elif 'coin' in prompt or 'token' in prompt:
-        create_coin(detail)
-    elif 'pillar' in prompt:
-        create_pillar(detail)
-    elif 'platform' in prompt or 'floor' in prompt:
-        create_platform(detail)
-    elif 'wall' in prompt:
-        create_wall_block(detail)
-    else:
-        create_puzzle_block(detail)
+    create_from_prompt(prompt, detail)
 
     apply_bevel(detail)
 
