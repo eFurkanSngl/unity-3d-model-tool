@@ -490,6 +490,17 @@ def create_coin(detail):
     obj.name = 'CoinToken'
 
 
+def create_monkey(detail):
+    bpy.ops.mesh.primitive_monkey_add(size=1.0 + detail * 0.2, location=(0, 0, 0.65))
+    obj = bpy.context.active_object
+    obj.name = 'MonkeyHead'
+
+    if detail > 0:
+        sub = obj.modifiers.new(name='GA_Subdivision', type='SUBSURF')
+        sub.levels = 1 + detail
+        sub.render_levels = 1 + detail
+
+
 def apply_bevel(detail):
     width = 0.03 + detail * 0.01
     segments = 2 + detail
@@ -523,7 +534,9 @@ def main():
 
     clear_scene()
 
-    if 'coin' in prompt or 'token' in prompt:
+    if 'monkey' in prompt or 'suzanne' in prompt or 'ape' in prompt:
+        create_monkey(detail)
+    elif 'coin' in prompt or 'token' in prompt:
         create_coin(detail)
     elif 'pillar' in prompt:
         create_pillar(detail)
