@@ -1,0 +1,10 @@
+﻿{
+  "name": "com.aslan.modeltool",
+  "version": "0.1.0",
+  "displayName": "Aslan 3D Model Tool",
+  "description": "Unity Editor tool that generates prompt-based 3D models via Blender batch mode and imports them with mobile-friendly settings.",
+  "unity": "2021.3",
+  "author": {
+    "name": "Aslan"
+  }
+}

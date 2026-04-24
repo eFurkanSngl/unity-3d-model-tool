@@ -1,0 +1,16 @@
+﻿{
+  "name": "Aslan.ModelTool.Editor",
+  "rootNamespace": "Aslan.ModelTool.Editor",
+  "references": [],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
